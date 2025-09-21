@@ -75,12 +75,12 @@ const executePM2Command = (command, res, successMessage = 'Command executed succ
 
 // Start a Python template process with custom env values and a custom process name
 app.post('/api/pm2/run-template', async (req, res) => {
-  const { memberId, loginId, bet_amount, bet_on, name } = req.body;
+  const { memberId, loginId, bet_amount, name } = req.body;
   if (!memberId || !loginId || !bet_amount || !bet_on || !name) {
     return res.status(400).json({
       success: false,
       error: 'Validation error',
-      message: 'memberId, loginId, bet_amount, bet_on and name are required',
+      message: 'memberId, loginId, bet_amount,  name are required',
       code: 'MISSING_PARAMS',
       timestamp: new Date().toISOString(),
     });
@@ -121,7 +121,7 @@ app.post('/api/pm2/run-template', async (req, res) => {
   const errLog = path.join(logDir, 'error.logs');
 
   const envVars =
-    `MEMBER_ID='${memberId}' LOGIN_ID='${loginId}' BET_AMOUNT='${bet_amount}' BET_ON='${bet_on}'`;
+    `MEMBER_ID='${memberId}' LOGIN_ID='${loginId}' BET_AMOUNT='${bet_amount}'`;
 
   const pm2Cmd =
     `${envVars} pm2 start ${mainPy} ` +
