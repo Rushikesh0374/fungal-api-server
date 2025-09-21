@@ -80,27 +80,29 @@ app.post('/api/pm2/run-template', (req, res) => {
       error: 'Validation error',
       message: 'memberId, loginId, bet_amount, bet_on and name are required',
       code: 'MISSING_PARAMS',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
   // Absolute path to the Python project folder
   const scriptFolderPath = '/home/ubuntu/FunAB/my-template';
 
-  // Build the PM2 command
-  const command =
-    `pm2 start ${scriptFolderPath}/.venv/bin/python3 ` +             // python binary
-    `--name "${name}" ` +                                           // pm2 process name
-    `--output ${scriptFolderPath}/output.logs ` +                   // stdout log file
-    `--error ${scriptFolderPath}/error.logs ` +                     // stderr log file
-    `--env MEMBER_ID="${memberId}" ` +
-    `--env LOGIN_ID="${loginId}" ` +
-    `--env BET_AMOUNT="${bet_amount}" ` +
-    `--env BET_ON="${bet_on}" ` +
-    `-- ${scriptFolderPath}/main.py`;                               // python script
+  // Build PM2 command safely
+  const command = [
+    `${scriptFolderPath}/.venv/bin/python3`,              // python binary
+    `--name "${name}"`,                                   // PM2 process name
+    `--output ${scriptFolderPath}/output.logs`,           // stdout log
+    `--error ${scriptFolderPath}/error.logs`,             // stderr log
+    `--env MEMBER_ID="${memberId}"`,                      // env vars
+    `--env LOGIN_ID="${loginId}"`,
+    `--env BET_AMOUNT="${bet_amount}"`,
+    `--env BET_ON="${bet_on}"`,
+    `-- ${scriptFolderPath}/main.py`,                     // python script
+  ].join(' ');
 
   executePM2Command(command, res, `Template started with process name '${name}'`);
 });
+
 
 
 
