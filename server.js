@@ -76,7 +76,7 @@ const executePM2Command = (command, res, successMessage = 'Command executed succ
 // Start a Python template process with custom env values and a custom process name
 app.post('/api/pm2/run-template', async (req, res) => {
   const { memberId, loginId, bet_amount, name } = req.body;
-  if (!memberId || !loginId || !bet_amount || !bet_on || !name) {
+  if (!memberId || !loginId || !bet_amount  || !name) {
     return res.status(400).json({
       success: false,
       error: 'Validation error',
