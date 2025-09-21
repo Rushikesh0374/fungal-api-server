@@ -3,6 +3,8 @@ const fs = require('fs');
 const { exec } = require('child_process');
 const app = express();
 const PORT = 4000;
+const path = require('path');
+
 
 // Middleware to parse JSON bodies
 app.use(express.json());
@@ -69,11 +71,11 @@ const executePM2Command = (command, res, successMessage = 'Command executed succ
   });
 };
 
-// Start a Python template process with custom env values and a custom process name
-app.post('/api/pm2/run-template', (req, res) => {
-  const { memberId, loginId, bet_amount, bet_on, name } = req.body;
 
-  // Validate required fields
+
+// Start a Python template process with custom env values and a custom process name
+app.post('/api/pm2/run-template', async (req, res) => {
+  const { memberId, loginId, bet_amount, bet_on, name } = req.body;
   if (!memberId || !loginId || !bet_amount || !bet_on || !name) {
     return res.status(400).json({
       success: false,
@@ -83,26 +85,55 @@ app.post('/api/pm2/run-template', (req, res) => {
       timestamp: new Date().toISOString(),
     });
   }
+  // Process name validation
+  if (!/^[A-Za-z0-9_.-]+$/.test(name)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Validation error',
+      message: 'Invalid process name. Use letters, numbers, -, _, or . only.',
+      code: 'INVALID_NAME',
+      timestamp: new Date().toISOString(),
+    });
+  }
 
-  // Absolute path to the Python project folder
+  // Absolute paths and log directory
   const scriptFolderPath = '/home/ubuntu/FunAB/my-template';
+  const logDir = path.join(scriptFolderPath, name);
 
-  // Build PM2 command safely
-  const command = [
-    `${scriptFolderPath}/.venv/bin/python3`,              // python binary
-    `--name "${name}"`,                                   // PM2 process name
-    `--output ${scriptFolderPath}/output.logs`,           // stdout log
-    `--error ${scriptFolderPath}/error.logs`,             // stderr log
-    `--env MEMBER_ID="${memberId}"`,                      // env vars
-    `--env LOGIN_ID="${loginId}"`,
-    `--env BET_AMOUNT="${bet_amount}"`,
-    `--env BET_ON="${bet_on}"`,
-    `-- ${scriptFolderPath}/main.py`,                     // python script
-  ].join(' ');
+  try {
+    // Ensure log directory exists
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: `Could not create log directory: ${err.message}`,
+      code: 'LOG_DIR_ERROR',
+      timestamp: new Date().toISOString(),
+    });
+  }
 
-  executePM2Command(command, res, `Template started with process name '${name}'`);
+  const pythonBin = `${scriptFolderPath}/.venv/bin/python3`;
+  const mainPy = `${scriptFolderPath}/main.py`;
+  const outLog = path.join(logDir, 'output.logs');
+  const errLog = path.join(logDir, 'error.logs');
+
+  const envVars =
+    `MEMBER_ID='${memberId}' LOGIN_ID='${loginId}' BET_AMOUNT='${bet_amount}' BET_ON='${bet_on}'`;
+
+  const pm2Cmd =
+    `${envVars} pm2 start ${mainPy} ` +
+    `--interpreter=${pythonBin} ` +
+    `--name=${name} ` +
+    `--output=${outLog} ` +
+    `--error=${errLog}`;
+
+  const fullCmd = `${pm2Cmd} && pm2 save`;
+
+  executePM2Command(fullCmd, res, `Template started with process name '${name}'.`);
 });
-
 
 
 
