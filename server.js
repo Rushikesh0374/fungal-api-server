@@ -69,6 +69,41 @@ const executePM2Command = (command, res, successMessage = 'Command executed succ
   });
 };
 
+// Start a Python template process with custom env values and a custom process name
+app.post('/api/pm2/run-template', (req, res) => {
+  const { memberId, loginId, bet_amount, bet_on, name } = req.body;
+
+  // Validate required fields
+  if (!memberId || !loginId || !bet_amount || !bet_on || !name) {
+    return res.status(400).json({
+      success: false,
+      error: 'Validation error',
+      message: 'memberId, loginId, bet_amount, bet_on and name are required',
+      code: 'MISSING_PARAMS',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // Absolute path to the Python project folder
+  const scriptFolderPath = '/home/ubuntu/FunAB/my-template';
+
+  // Build the PM2 command
+  const command =
+    `pm2 start ${scriptFolderPath}/.venv/bin/python3 ` +             // python binary
+    `--name "${name}" ` +                                           // pm2 process name
+    `--output ${scriptFolderPath}/output.logs ` +                   // stdout log file
+    `--error ${scriptFolderPath}/error.logs ` +                     // stderr log file
+    `--env MEMBER_ID="${memberId}" ` +
+    `--env LOGIN_ID="${loginId}" ` +
+    `--env BET_AMOUNT="${bet_amount}" ` +
+    `--env BET_ON="${bet_on}" ` +
+    `-- ${scriptFolderPath}/main.py`;                               // python script
+
+  executePM2Command(command, res, `Template started with process name '${name}'`);
+});
+
+
+
 // JSON API endpoint
 app.get('/api/json', (req, res) => {
   fs.readFile('data.json', 'utf8', (err, data) => {
